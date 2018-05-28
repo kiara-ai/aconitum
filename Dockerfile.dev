@@ -1,0 +1,43 @@
+FROM php:7-zts
+
+MAINTAINER Kiara Surabi <kiarasurabi@gmail.com>
+
+WORKDIR /usr/app
+
+COPY _assets/php-development.ini /usr/local/etc/php/php.ini
+
+# -------------------------------------------- Install system dependencies --
+RUN apt-get update && apt-get upgrade -y; \
+    apt-get install libhiredis-dev git zip unzip zlib1g-dev libicu-dev libjpeg-dev libpng-dev supervisor vim less \
+        -y --no-install-recommends; \
+    rm -r /var/lib/apt/lists/*
+
+# ------------------------------------------------------ Enable extensions --
+RUN pecl install xdebug ds; \
+    docker-php-ext-enable xdebug ds; \
+    docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr; \
+    docker-php-ext-install pdo pdo_mysql zip intl mysqli gd opcache pcntl bcmath
+
+# --------------------------------------------------------- Compile swoole --
+RUN git clone https://github.com/swoole/swoole-src.git; \
+    cd swoole-src/; \
+    phpize; \
+    ./configure \
+        --enable-async-redis \
+    ; \
+    make && make install; \
+    cd ..; \
+    rm -rf swoole-src; \
+    docker-php-ext-enable swoole
+
+# ------------------------------------------------------- Install composer --
+RUN curl -sS https://getcomposer.org/installer | php; \
+    mv composer.phar /usr/local/bin/composer; \
+    chmod +x /usr/local/bin/composer; \
+    composer global require hirak/prestissimo
+
+# ---------------------------------------------------------- Install psysh --
+RUN composer global require psy/psysh --no-progress --profile --prefer-dist
+
+
+# vi: set ft=dockerfile
