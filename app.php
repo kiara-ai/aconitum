@@ -1,3 +1,5 @@
 <?php
 
-echo "Hello to swoole!";
+require_once __DIR__ . '/bootstrap.php';
+
+echo getenv('MYSQL_PASSWORD');
